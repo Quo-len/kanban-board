@@ -1,5 +1,6 @@
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../db';
+import { Board } from './board.model';
 
 export class Column extends Model {
   public id!: string;
@@ -18,6 +19,10 @@ Column.init(
     boardId: {
       type: DataTypes.UUID,
       allowNull: false,
+      references: {
+        model: Board,
+        key: 'id',
+      },
     },
     title: {
       type: DataTypes.STRING,

@@ -1,9 +1,10 @@
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../db';
+import { Column } from './column.model';
+import { Board } from './board.model';
 
 export class Card extends Model {
   public id!: string;
-  public boardId!: string;
   public columnId!: string;
   public title!: string;
   public description?: string;
@@ -17,13 +18,13 @@ Card.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
-    boardId: {
-      type: DataTypes.UUID,
-      allowNull: false,
-    },
     columnId: {
       type: DataTypes.UUID,
       allowNull: false,
+      references: {
+        model: Column,
+        key: 'id',
+      },
     },
     title: {
       type: DataTypes.STRING,
