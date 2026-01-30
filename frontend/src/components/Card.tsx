@@ -1,14 +1,4 @@
-import {
-    Box,
-    IconButton,
-    Typography,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Button,
-    TextField,
-} from '@mui/material'
+import { Box, IconButton, Typography } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import { useState } from 'react'
@@ -16,6 +6,8 @@ import { useAppDispatch } from '../store/hooks'
 import { editCard, removeCard } from '../store/slices/cardSlice'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import CardDialog from './CardDialog'
+import ConfirmDialog from './ConfirmDialog'
 
 type CardProps = {
     id: string
@@ -152,67 +144,29 @@ export default function Card({ id, columnId, title, description }: CardProps) {
                 </IconButton>
             </Box>
 
-            <Dialog open={editOpen} onClose={() => setEditOpen(false)}>
-                <DialogTitle>Edit Card</DialogTitle>
-                <DialogContent
-                    sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 2,
-                        minWidth: 360,
-                        mt: 1,
-                    }}
-                >
-                    <TextField
-                        autoFocus
-                        margin="dense"
-                        label="Title"
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        required
-                        fullWidth
-                    />
-                    <TextField
-                        label="Description"
-                        margin="dense"
-                        value={editDescription}
-                        onChange={(e) => setEditDescription(e.target.value)}
-                        multiline
-                        minRows={3}
-                        fullWidth
-                    />
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setEditOpen(false)}>Cancel</Button>
-                    <Button
-                        variant="contained"
-                        onClick={handleSave}
-                        disabled={isUpdating}
-                    >
-                        {isUpdating ? 'Saving...' : 'Save'}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            <CardDialog
+                open={editOpen}
+                onClose={() => setEditOpen(false)}
+                title="Edit Card"
+                titleValue={editTitle}
+                onTitleChange={setEditTitle}
+                descriptionValue={editDescription}
+                onDescriptionChange={setEditDescription}
+                onSubmit={handleSave}
+                isLoading={isUpdating}
+                submitLabel="Save"
+            />
 
-            <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)}>
-                <DialogTitle>Delete Card</DialogTitle>
-                <DialogContent>
-                    <Typography>
-                        Are you sure you want to delete "{title}"?
-                    </Typography>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setDeleteOpen(false)}>Cancel</Button>
-                    <Button
-                        variant="contained"
-                        color="error"
-                        onClick={handleDelete}
-                        disabled={isDeleting}
-                    >
-                        {isDeleting ? 'Deleting...' : 'Delete'}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            <ConfirmDialog
+                open={deleteOpen}
+                onClose={() => setDeleteOpen(false)}
+                title="Delete Card"
+                message={`Are you sure you want to delete "${title}"?`}
+                onConfirm={handleDelete}
+                isLoading={isDeleting}
+                confirmLabel="Delete"
+                color="error"
+            />
         </Box>
     )
 }

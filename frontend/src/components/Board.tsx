@@ -1,15 +1,4 @@
-import {
-    Box,
-    Divider,
-    IconButton,
-    Stack,
-    Typography,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Button,
-} from '@mui/material'
+import { Box, Divider, IconButton, Stack, Typography } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import { useState } from 'react'
@@ -31,6 +20,7 @@ import {
     useSensors,
 } from '@dnd-kit/core'
 import { moveCardPosition } from '../store/slices/cardSlice'
+import ConfirmDialog from './ConfirmDialog'
 
 type BoardProps = {
     board: BoardType
@@ -223,32 +213,16 @@ export default function Board({ board }: BoardProps) {
                 isUpdating={isUpdating}
             />
 
-            {/* Delete Board Confirmation Dialog */}
-            <Dialog
+            <ConfirmDialog
                 open={deleteConfirmOpen}
                 onClose={() => setDeleteConfirmOpen(false)}
-            >
-                <DialogTitle>Delete Board</DialogTitle>
-                <DialogContent>
-                    <Typography>
-                        Are you sure you want to delete "{board.name}"? This
-                        action cannot be undone.
-                    </Typography>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setDeleteConfirmOpen(false)}>
-                        Cancel
-                    </Button>
-                    <Button
-                        onClick={handleConfirmDelete}
-                        variant="contained"
-                        color="error"
-                        disabled={isDeleting}
-                    >
-                        {isDeleting ? 'Deleting...' : 'Delete'}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+                title="Delete Board"
+                message={`Are you sure you want to delete "${board.name}"? This action cannot be undone.`}
+                onConfirm={handleConfirmDelete}
+                isLoading={isDeleting}
+                confirmLabel="Delete"
+                color="error"
+            />
         </Box>
     )
 }

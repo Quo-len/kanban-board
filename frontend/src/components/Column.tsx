@@ -1,15 +1,4 @@
-import {
-    Box,
-    IconButton,
-    Stack,
-    Typography,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Button,
-    TextField,
-} from '@mui/material'
+import { Box, IconButton, Stack, Typography } from '@mui/material'
 import Card from './Card'
 import AddIcon from '@mui/icons-material/Add'
 import { useState } from 'react'
@@ -18,6 +7,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { addCard } from '../store/slices/cardSlice'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useDroppable } from '@dnd-kit/core'
+import CardDialog from './CardDialog'
 
 type ColumnProps = {
     column: ColumnType
@@ -33,7 +23,7 @@ export default function Column({ column }: ColumnProps) {
         id: `column-${column.id}`,
         data: { columnId: column.id },
     })
-    const cardIds = column.cards.map((card) => `card-${card.id}`)
+    const cardIds = (column.cards || []).map((card) => `card-${card.id}`)
 
     const handleNewCard = () => {
         setTitle('')
@@ -88,7 +78,7 @@ export default function Column({ column }: ColumnProps) {
                     items={cardIds}
                     strategy={verticalListSortingStrategy}
                 >
-                    {column.cards.map((card) => (
+                    {(column.cards || []).map((card) => (
                         <Card key={card.id} {...card} />
                     ))}
                 </SortableContext>
@@ -101,44 +91,18 @@ export default function Column({ column }: ColumnProps) {
                 </IconButton>
             </Stack>
 
-            <Dialog open={createOpen} onClose={() => setCreateOpen(false)}>
-                <DialogTitle>Add Card</DialogTitle>
-                <DialogContent
-                    sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 2,
-                        minWidth: 360,
-                        mt: 1,
-                    }}
-                >
-                    <TextField
-                        label="Title"
-                        margin="dense"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        autoFocus
-                        required
-                    />
-                    <TextField
-                        label="Description"
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        multiline
-                        minRows={3}
-                    />
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setCreateOpen(false)}>Cancel</Button>
-                    <Button
-                        variant="contained"
-                        onClick={handleCreate}
-                        disabled={creatingCard}
-                    >
-                        {creatingCard ? 'Adding...' : 'Add'}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            <CardDialog
+                open={createOpen}
+                onClose={() => setCreateOpen(false)}
+                title="Add Card"
+                titleValue={title}
+                onTitleChange={setTitle}
+                descriptionValue={description}
+                onDescriptionChange={setDescription}
+                onSubmit={handleCreate}
+                isLoading={creatingCard}
+                submitLabel="Add"
+            />
         </Box>
     )
 }
