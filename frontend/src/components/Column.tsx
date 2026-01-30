@@ -1,11 +1,16 @@
-import { Box, Stack, Typography } from '@mui/material'
+import { Box, IconButton, Stack, Typography } from '@mui/material'
 import Card from './Card'
+import AddIcon from '@mui/icons-material/Add'
 
 type ColumnProps = {
     column: any
 }
 
 export default function Column({ column }: ColumnProps) {
+    const handleNewCard = () => {
+        console.log('Add new card to column', column.id)
+    }
+
     return (
         <Box>
             <Typography textAlign="center" variant="h6" mb={1}>
@@ -17,7 +22,7 @@ export default function Column({ column }: ColumnProps) {
                 bgcolor="grey.300"
                 direction="column"
                 spacing={1.5}
-                height="calc(90vh - 120px)"
+                height="calc(90vh - 145px)"
                 minWidth={300}
                 width="100%"
                 alignItems="center"
@@ -25,9 +30,17 @@ export default function Column({ column }: ColumnProps) {
                 paddingBottom={2}
                 overflow="auto"
             >
-                {column.cards.map((card: any) => (
-                    <Card key={card.id} {...card} />
-                ))}
+                {column.cards &&
+                    column.cards.map((card: any) => (
+                        <Card key={card.id} {...card} />
+                    ))}
+                <IconButton
+                    onClick={handleNewCard}
+                    size="large"
+                    color="primary"
+                >
+                    <AddIcon fontSize="large" />
+                </IconButton>
             </Stack>
         </Box>
     )

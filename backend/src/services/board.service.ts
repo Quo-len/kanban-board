@@ -53,7 +53,26 @@ export const updateBoard = async (id: string, boardData: UpdateBoardInput) => {
   if (!board) {
     throw new NotFoundError('Board');
   }
-  return await board.update(boardData);
+  await board.update(boardData);
+
+  return await Board.findByPk(id, {
+    include: [
+      {
+        model: Column,
+        as: 'columns',
+        separate: true,
+        order: [['position', 'ASC']],
+        include: [
+          {
+            model: Card,
+            as: 'cards',
+            separate: true,
+            order: [['position', 'ASC']],
+          },
+        ],
+      },
+    ],
+  });
 };
 
 export const deleteBoard = async (id: string) => {

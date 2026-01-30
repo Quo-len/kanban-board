@@ -6,7 +6,7 @@ import { errorHandler } from './middlewares/errorHandler.middleware';
 import { notFoundHandler } from './middlewares/notFound.middleware';
 
 const app: Application = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 4000;
 
 const allowedOrigins = [process.env.FRONTEND_URL];
 app.use(
@@ -37,10 +37,15 @@ app.use(notFoundHandler);
 
 app.use(errorHandler);
 
-sequelize.sync({ force: false }).then(() => {
-  console.log('Database synced');
-});
+(async () => {
+  try {
+    await sequelize.authenticate();
+    console.log('Connected to Supabase Postgres');
+  } catch (err) {
+    console.error('Unable to connect:', err);
+  }
+})();
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
