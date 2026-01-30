@@ -4,7 +4,7 @@ import { CreateCardInput, UpdateCardInput } from '../schemas/card.schema';
 import { NotFoundError } from '../utils/errors';
 import sequelize from '../db';
 
-const POSITION_STEP = 1024;
+const POSITION_STEP = 5120;
 const MIN_GAP = 1;
 
 const getHighestPositionCard = async (columnId: string) => {
@@ -15,7 +15,11 @@ const getHighestPositionCard = async (columnId: string) => {
   return card;
 };
 
-const rebalanceColumn = async (columnId: string, transaction: Transaction) => {
+const rebalanceColumn = async (
+  columnId: string,
+  transaction: Transaction,
+  excludeCardId?: string,
+) => {
   const cards = await Card.findAll({
     where: { columnId },
     order: [['position', 'ASC']],
@@ -28,6 +32,8 @@ const rebalanceColumn = async (columnId: string, transaction: Transaction) => {
       { transaction },
     );
   }
+
+  return cards.filter((card) => card.id !== excludeCardId);
 };
 
 export const createCard = async (cardData: CreateCardInput) => {
@@ -35,7 +41,6 @@ export const createCard = async (cardData: CreateCardInput) => {
   if (!column) {
     throw new NotFoundError('Column');
   }
-
   const highestCard = await getHighestPositionCard(cardData.columnId);
   const newPosition = highestCard
     ? highestCard.position + POSITION_STEP
@@ -71,7 +76,7 @@ export const moveCard = async (
       throw new NotFoundError('Card');
     }
 
-    const cards = await Card.findAll({
+    let cards = await Card.findAll({
       where: {
         columnId,
         id: { [Op.ne]: id },
@@ -80,8 +85,23 @@ export const moveCard = async (
       transaction,
     });
 
-    const prev = cards[targetIndex - 1];
-    const next = cards[targetIndex];
+    if (cards.length > 1) {
+      let minGap = Infinity;
+      for (let i = 1; i < cards.length; i++) {
+        const gap = cards[i].position - cards[i - 1].position;
+        if (gap < minGap) minGap = gap;
+      }
+
+      if (minGap < MIN_GAP) {
+        console.log('Rebalancing column due to global insufficient gap');
+        cards = await rebalanceColumn(columnId, transaction, id);
+      }
+    }
+
+    const safeTargetIndex = Math.min(Math.max(targetIndex, 0), cards.length);
+
+    const prev = cards[safeTargetIndex - 1];
+    const next = cards[safeTargetIndex];
 
     let newPosition: number;
 
@@ -89,16 +109,11 @@ export const moveCard = async (
       newPosition = (prev.position + next.position) / 2;
 
       if (next.position - prev.position < MIN_GAP) {
-        await rebalanceColumn(columnId, transaction);
+        console.log('Rebalancing column due to insufficient gap');
+        const refreshed = await rebalanceColumn(columnId, transaction, id);
 
-        const refreshed = await Card.findAll({
-          where: { columnId },
-          order: [['position', 'ASC']],
-          transaction,
-        });
-
-        const newPrev = refreshed[targetIndex - 1];
-        const newNext = refreshed[targetIndex];
+        const newPrev = refreshed[safeTargetIndex - 1];
+        const newNext = refreshed[safeTargetIndex];
 
         newPosition =
           newPrev && newNext

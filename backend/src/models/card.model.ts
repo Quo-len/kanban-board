@@ -1,7 +1,6 @@
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../db';
 import { Column } from './column.model';
-import { Board } from './board.model';
 
 export class Card extends Model {
   public id!: string;
@@ -35,7 +34,7 @@ Card.init(
       allowNull: true,
     },
     position: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.DOUBLE,
       allowNull: false,
     },
   },

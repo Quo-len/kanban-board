@@ -1,7 +1,8 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { Board } from '../../types'
 import * as api from '../../api'
 import { saveBoardId, deleteBoardId } from '../../utils/storage'
+import { addCard, editCard, removeCard, moveCardPosition } from './cardSlice'
 
 export interface BoardState {
     data: Board | null
@@ -109,6 +110,72 @@ const boardSlice = createSlice({
             .addCase(deleteCurrentBoard.fulfilled, (state) => {
                 deleteBoardId()
                 state.data = null
+            })
+            .addCase(addCard.fulfilled, (state, action) => {
+                if (!state.data) return
+                const card = action.payload
+                const column = state.data.columns.find(
+                    (col) => col.id === card.columnId
+                )
+                if (!column) return
+                column.cards.push(card)
+                column.cards.sort((a, b) => a.position - b.position)
+            })
+            .addCase(editCard.fulfilled, (state, action) => {
+                if (!state.data) return
+                const updated = action.payload
+                for (const col of state.data.columns) {
+                    const index = col.cards.findIndex(
+                        (c) => c.id === updated.id
+                    )
+                    if (index !== -1) {
+                        if (col.id !== updated.columnId) {
+                            col.cards.splice(index, 1)
+                        } else {
+                            col.cards[index] = {
+                                ...col.cards[index],
+                                ...updated,
+                            }
+                            col.cards.sort((a, b) => a.position - b.position)
+                        }
+                        break
+                    }
+                }
+                const target = state.data.columns.find(
+                    (col) => col.id === updated.columnId
+                )
+                if (target && !target.cards.find((c) => c.id === updated.id)) {
+                    target.cards.push(updated)
+                    target.cards.sort((a, b) => a.position - b.position)
+                }
+            })
+            .addCase(moveCardPosition.fulfilled, (state, action) => {
+                if (!state.data) return
+                const moved = action.payload
+                for (const col of state.data.columns) {
+                    const index = col.cards.findIndex((c) => c.id === moved.id)
+                    if (index !== -1) {
+                        col.cards.splice(index, 1)
+                        break
+                    }
+                }
+                const target = state.data.columns.find(
+                    (col) => col.id === moved.columnId
+                )
+                if (!target) return
+                target.cards.push(moved)
+                target.cards.sort((a, b) => a.position - b.position)
+            })
+            .addCase(removeCard.fulfilled, (state, action) => {
+                if (!state.data) return
+                const id = action.payload
+                for (const col of state.data.columns) {
+                    const index = col.cards.findIndex((c) => c.id === id)
+                    if (index !== -1) {
+                        col.cards.splice(index, 1)
+                        break
+                    }
+                }
             })
     },
 })

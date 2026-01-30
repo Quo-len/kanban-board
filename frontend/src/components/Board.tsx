@@ -20,23 +20,29 @@ import {
     clearBoard,
 } from '../store/slices/boardSlice'
 import Column from './Column'
+import { Board as BoardType } from '../types'
 import Popup from './Popup'
-
-type Column = {
-    id: string | number
-    [key: string]: any
-}
+import {
+    DndContext,
+    DragEndEvent,
+    PointerSensor,
+    closestCenter,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core'
+import { moveCardPosition } from '../store/slices/cardSlice'
 
 type BoardProps = {
-    board: {
-        id: string
-        name: string
-        columns: Column[]
-    }
+    board: BoardType
 }
 
 export default function Board({ board }: BoardProps) {
     const dispatch = useAppDispatch()
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: { distance: 6 },
+        })
+    )
     const [editDialogOpen, setEditDialogOpen] = useState(false)
     const [newName, setNewName] = useState(board.name)
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
@@ -84,6 +90,78 @@ export default function Board({ board }: BoardProps) {
         }
     }
 
+    const handleDragEnd = async (event: DragEndEvent) => {
+        const { active, over } = event
+        if (!over) return
+
+        const activeData = active.data.current as
+            | { cardId: string; columnId: string }
+            | undefined
+        if (!activeData?.cardId) return
+
+        const overData = over.data.current as
+            | { cardId?: string; columnId?: string }
+            | undefined
+
+        let targetColumnId = overData?.columnId
+        let targetIndex: number | null = null
+
+        const findColumnById = (columnId?: string) =>
+            board.columns.find((col) => col.id === columnId)
+
+        const findCardLocation = (cardId?: string) => {
+            if (!cardId) return null
+            for (const col of board.columns) {
+                const index = col.cards.findIndex((c) => c.id === cardId)
+                if (index !== -1) return { columnId: col.id, index }
+            }
+            return null
+        }
+
+        const overCard = overData?.cardId
+            ? findCardLocation(overData.cardId)
+            : null
+
+        if (overCard) {
+            targetColumnId = overCard.columnId
+            const column = findColumnById(targetColumnId)
+            if (!column) return
+            const activeLoc = findCardLocation(activeData.cardId)
+            if (!activeLoc) return
+
+            if (targetColumnId === activeLoc.columnId) {
+                targetIndex =
+                    activeLoc.index < overCard.index
+                        ? overCard.index - 1
+                        : overCard.index
+            } else {
+                targetIndex = overCard.index
+            }
+        } else if (targetColumnId) {
+            const column = findColumnById(targetColumnId)
+            if (!column) return
+            const activeLoc = findCardLocation(activeData.cardId)
+            if (!activeLoc) return
+            targetIndex =
+                targetColumnId === activeLoc.columnId
+                    ? Math.max(column.cards.length - 1, 0)
+                    : column.cards.length
+        }
+
+        if (!targetColumnId || targetIndex === null) return
+
+        try {
+            await dispatch(
+                moveCardPosition({
+                    id: activeData.cardId,
+                    payload: { columnId: targetColumnId, targetIndex },
+                })
+            ).unwrap()
+        } catch (error) {
+            console.error('Failed to move card:', error)
+        }
+    }
+
     return (
         <Box padding={2}>
             <Box
@@ -113,21 +191,27 @@ export default function Board({ board }: BoardProps) {
                 </Box>
             </Box>
             <Divider />
-            <Stack
-                direction="row"
-                marginTop={1}
-                spacing={2}
-                width="100%"
-                flex={1}
-                minWidth={300}
+            <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
             >
-                {board.columns &&
-                    board.columns.map((column) => (
-                        <Box key={column.id} flex={1}>
-                            <Column column={column} />
-                        </Box>
-                    ))}
-            </Stack>
+                <Stack
+                    direction="row"
+                    marginTop={1}
+                    spacing={2}
+                    width="100%"
+                    flex={1}
+                    minWidth={300}
+                >
+                    {board.columns &&
+                        board.columns.map((column) => (
+                            <Box key={column.id} flex={1}>
+                                <Column column={column} />
+                            </Box>
+                        ))}
+                </Stack>
+            </DndContext>
 
             <Popup
                 title="Edit Board Name"
