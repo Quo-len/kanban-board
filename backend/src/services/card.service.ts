@@ -5,7 +5,6 @@ import { NotFoundError } from '../utils/errors';
 import sequelize from '../db';
 
 const POSITION_STEP = 5120;
-const MIN_GAP = 1;
 
 const getHighestPositionCard = async (columnId: string) => {
   const card = await Card.findOne({
@@ -13,27 +12,6 @@ const getHighestPositionCard = async (columnId: string) => {
     order: [['position', 'DESC']],
   });
   return card;
-};
-
-const rebalanceColumn = async (
-  columnId: string,
-  transaction: Transaction,
-  excludeCardId?: string,
-) => {
-  const cards = await Card.findAll({
-    where: { columnId },
-    order: [['position', 'ASC']],
-    transaction,
-  });
-
-  for (let i = 0; i < cards.length; i++) {
-    await cards[i].update(
-      { position: (i + 1) * POSITION_STEP },
-      { transaction },
-    );
-  }
-
-  return cards.filter((card) => card.id !== excludeCardId);
 };
 
 export const createCard = async (cardData: CreateCardInput) => {
@@ -85,19 +63,6 @@ export const moveCard = async (
       transaction,
     });
 
-    if (cards.length > 1) {
-      let minGap = Infinity;
-      for (let i = 1; i < cards.length; i++) {
-        const gap = cards[i].position - cards[i - 1].position;
-        if (gap < minGap) minGap = gap;
-      }
-
-      if (minGap < MIN_GAP) {
-        console.log('Rebalancing column due to global insufficient gap');
-        cards = await rebalanceColumn(columnId, transaction, id);
-      }
-    }
-
     const safeTargetIndex = Math.min(Math.max(targetIndex, 0), cards.length);
 
     const prev = cards[safeTargetIndex - 1];
@@ -107,19 +72,6 @@ export const moveCard = async (
 
     if (prev && next) {
       newPosition = (prev.position + next.position) / 2;
-
-      if (next.position - prev.position < MIN_GAP) {
-        console.log('Rebalancing column due to insufficient gap');
-        const refreshed = await rebalanceColumn(columnId, transaction, id);
-
-        const newPrev = refreshed[safeTargetIndex - 1];
-        const newNext = refreshed[safeTargetIndex];
-
-        newPosition =
-          newPrev && newNext
-            ? (newPrev.position + newNext.position) / 2
-            : POSITION_STEP;
-      }
     } else if (prev) {
       newPosition = prev.position + POSITION_STEP;
     } else if (next) {

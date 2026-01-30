@@ -1,15 +1,12 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
 import express, { Application, Request, Response } from 'express';
-import routes from './routes';
-import sequelize from './db';
+import routes from '../src/routes';
+import sequelize from '../src/db';
 import cors from 'cors';
-import { errorHandler } from './middlewares/errorHandler.middleware';
-import { notFoundHandler } from './middlewares/notFound.middleware';
+import { errorHandler } from '../src/middlewares/errorHandler.middleware';
+import { notFoundHandler } from '../src/middlewares/notFound.middleware';
+import serverless from 'serverless-http';
 
 const app: Application = express();
-const PORT = Number(process.env.PORT) || 4000;
 
 const allowedOrigins = [process.env.FRONTEND_URL, 'http://localhost:3000'];
 
@@ -36,7 +33,7 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 app.get('/status', (req: Request, res: Response) => {
-  res.send('API is running!');
+  res.send('API is running');
 });
 
 app.use(notFoundHandler);
@@ -46,12 +43,10 @@ app.use(errorHandler);
 (async () => {
   try {
     await sequelize.authenticate();
-    console.log('Connected to Supabase Postgres');
+    console.log('Connected to Supabase Postgres on Vercel');
   } catch (err) {
     console.error('Unable to connect:', err);
   }
 })();
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+export default serverless(app);

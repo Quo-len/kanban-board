@@ -78,6 +78,9 @@ web_modules/
 .next
 out
 
+# React build output
+build/
+
 # Nuxt.js build / generate output
 .nuxt
 dist
@@ -111,6 +114,10 @@ dist
 # Serverless directories
 .serverless/
 
+# Vercel build output
+.vercel/
+
+
 # FuseBox cache
 .fusebox/
 
@@ -139,3 +146,6 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Vercel
+.vercel/

@@ -1,11 +1,34 @@
 {
   "compilerOptions": {
-    "target": "ES2016",
-    "module": "commonjs",
-    "rootDir": "./src",
-    "outDir": "./dist",
+    /* Target & module */
+    "target": "ES2020",
+    "module": "CommonJS",
+
+    /* Project structure */
+    "rootDir": ".",
+    "outDir": "dist",
+
+    /* Node compatibility */
+    "moduleResolution": "node",
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+
+    /* Strictness */
     "strict": true,
-    "skipLibCheck": true
-  }
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+
+    /* Source maps (helpful for debugging on Vercel) */
+    "sourceMap": true,
+
+    /* JSON + env imports */
+    "resolveJsonModule": true,
+
+    /* Types */
+    "types": ["node"]
+  },
+
+  "include": ["src/**/*", "api/**/*"],
+
+  "exclude": ["node_modules", "dist", ".vercel"]
 }
