@@ -1,6 +1,10 @@
 import { Router } from 'express';
-import { validate } from '../middlewares/validate.middleware';
-import { createBoardSchema, updateBoardSchema } from '../schemas/board.schema';
+import { validate, validateParams } from '../middlewares/validate.middleware';
+import {
+  createBoardSchema,
+  updateBoardSchema,
+  boardIdParamsSchema,
+} from '../schemas/board.schema';
 import * as boardController from '../controllers/board.controller';
 
 const router = Router();
@@ -9,8 +13,12 @@ router.post('/', validate(createBoardSchema), boardController.createBoard);
 
 router
   .route('/:id')
-  .get(boardController.getBoard)
-  .put(validate(updateBoardSchema), boardController.updateBoard)
-  .delete(boardController.deleteBoard);
+  .get(validateParams(boardIdParamsSchema), boardController.getBoard)
+  .put(
+    validateParams(boardIdParamsSchema),
+    validate(updateBoardSchema),
+    boardController.updateBoard,
+  )
+  .delete(validateParams(boardIdParamsSchema), boardController.deleteBoard);
 
 export default router;

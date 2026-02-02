@@ -10,5 +10,9 @@ export const createCardSchema = z.object({
 
 export const updateCardSchema = createCardSchema.partial();
 
+export const cardIdParamsSchema = z.object({
+  id: z.string().uuid('Invalid card ID'),
+});
+
 export type CreateCardInput = z.infer<typeof createCardSchema>;
 export type UpdateCardInput = z.infer<typeof updateCardSchema>;
