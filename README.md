@@ -57,15 +57,15 @@ npm install
 cp .env.example .env
 ```
 
-Configure your `.env` file:
+Configure your `.env` file using this format:
 
 ```env
 NODE_ENV=development
-DATABASE_URL=postgresql://user:password@host:5432/database
+DATABASE_URL=postgresql://<user>:<password>@<host>:<port>/<database>
 FRONTEND_URL=http://localhost:3000
 ```
 
-For Supabase, use the pooler connection string:
+For Supabase, use the pooler connection string format:
 
 ```env
 DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
@@ -94,6 +94,7 @@ cd frontend
 npm install
 
 # Create .env file (optional)
+# Note: avoid a trailing slash in the URL
 echo "REACT_APP_API_URL=http://localhost:4000/api" > .env
 
 # Start the frontend
