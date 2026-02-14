@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
+import { createSlice, createAsyncThunk, isAnyOf } from '@reduxjs/toolkit'
 import { Board } from '../../types'
 import * as api from '../../api'
 import { saveBoardId, deleteBoardId } from '../../utils/storage'
@@ -14,6 +14,37 @@ const initialState: BoardState = {
     data: null,
     loading: false,
     error: null,
+}
+
+const sortCards = (cards: Board['columns'][number]['cards']) =>
+    cards.sort((a, b) => a.position - b.position)
+
+const removeCardFromColumns = (columns: Board['columns'], cardId: string) => {
+    for (const column of columns) {
+        const cards = column.cards || []
+        const index = cards.findIndex((card) => card.id === cardId)
+        if (index !== -1) {
+            return cards.splice(index, 1)[0]
+        }
+    }
+
+    return null
+}
+
+const upsertCardInColumn = (
+    column: Board['columns'][number],
+    card: Board['columns'][number]['cards'][number]
+) => {
+    if (!column.cards) {
+        column.cards = []
+    }
+    const index = column.cards.findIndex((item) => item.id === card.id)
+    if (index === -1) {
+        column.cards.push(card)
+    } else {
+        column.cards[index] = { ...column.cards[index], ...card }
+    }
+    sortCards(column.cards)
 }
 
 export const fetchBoard = createAsyncThunk(
@@ -74,109 +105,72 @@ const boardSlice = createSlice({
         },
     },
     extraReducers: (builder) => {
-        builder
-            .addCase(fetchBoard.pending, (state) => {
+        builder.addCase(updateBoardName.fulfilled, (state, action) => {
+            if (state.data) {
+                saveBoardId(state.data.id)
+                state.data.name = action.payload.name
+            }
+        })
+        builder.addCase(deleteCurrentBoard.fulfilled, (state) => {
+            deleteBoardId()
+            state.data = null
+        })
+        builder.addCase(addCard.fulfilled, (state, action) => {
+            if (!state.data) return
+            const card = action.payload
+            const column = state.data.columns.find(
+                (col) => col.id === card.columnId
+            )
+            if (!column) return
+            upsertCardInColumn(column, card)
+        })
+        builder.addCase(editCard.fulfilled, (state, action) => {
+            if (!state.data) return
+            const updated = action.payload
+            removeCardFromColumns(state.data.columns, updated.id)
+            const target = state.data.columns.find(
+                (col) => col.id === updated.columnId
+            )
+            if (!target) return
+            upsertCardInColumn(target, updated)
+        })
+        builder.addCase(moveCardPosition.fulfilled, (state, action) => {
+            if (!state.data) return
+            const moved = action.payload
+            removeCardFromColumns(state.data.columns, moved.id)
+            const target = state.data.columns.find(
+                (col) => col.id === moved.columnId
+            )
+            if (!target) return
+            upsertCardInColumn(target, moved)
+        })
+        builder.addCase(removeCard.fulfilled, (state, action) => {
+            if (!state.data) return
+            const id = action.payload
+            removeCardFromColumns(state.data.columns, id)
+        })
+        builder.addMatcher(
+            isAnyOf(fetchBoard.pending, createNewBoard.pending),
+            (state) => {
                 state.loading = true
                 state.error = null
-            })
-            .addCase(fetchBoard.fulfilled, (state, action) => {
+            }
+        )
+        builder.addMatcher(
+            isAnyOf(fetchBoard.fulfilled, createNewBoard.fulfilled),
+            (state, action) => {
                 state.loading = false
                 state.data = action.payload
                 saveBoardId(action.payload.id)
-            })
-            .addCase(fetchBoard.rejected, (state, action) => {
+            }
+        )
+        builder.addMatcher(
+            isAnyOf(fetchBoard.rejected, createNewBoard.rejected),
+            (state, action) => {
                 state.loading = false
                 state.error = action.payload as string
-            })
-            .addCase(createNewBoard.pending, (state) => {
-                state.loading = true
-                state.error = null
-            })
-            .addCase(createNewBoard.fulfilled, (state, action) => {
-                state.loading = false
-                saveBoardId(action.payload.id)
-                state.data = action.payload
-            })
-            .addCase(createNewBoard.rejected, (state, action) => {
-                state.loading = false
-                state.error = action.payload as string
-            })
-            .addCase(updateBoardName.fulfilled, (state, action) => {
-                if (state.data) {
-                    saveBoardId(state.data.id)
-                    state.data.name = action.payload.name
-                }
-            })
-            .addCase(deleteCurrentBoard.fulfilled, (state) => {
-                deleteBoardId()
-                state.data = null
-            })
-            .addCase(addCard.fulfilled, (state, action) => {
-                if (!state.data) return
-                const card = action.payload
-                const column = state.data.columns.find(
-                    (col) => col.id === card.columnId
-                )
-                if (!column) return
-                column.cards.push(card)
-                column.cards.sort((a, b) => a.position - b.position)
-            })
-            .addCase(editCard.fulfilled, (state, action) => {
-                if (!state.data) return
-                const updated = action.payload
-                for (const col of state.data.columns) {
-                    const index = col.cards.findIndex(
-                        (c) => c.id === updated.id
-                    )
-                    if (index !== -1) {
-                        if (col.id !== updated.columnId) {
-                            col.cards.splice(index, 1)
-                        } else {
-                            col.cards[index] = {
-                                ...col.cards[index],
-                                ...updated,
-                            }
-                            col.cards.sort((a, b) => a.position - b.position)
-                        }
-                        break
-                    }
-                }
-                const target = state.data.columns.find(
-                    (col) => col.id === updated.columnId
-                )
-                if (target && !target.cards.find((c) => c.id === updated.id)) {
-                    target.cards.push(updated)
-                    target.cards.sort((a, b) => a.position - b.position)
-                }
-            })
-            .addCase(moveCardPosition.fulfilled, (state, action) => {
-                if (!state.data) return
-                const moved = action.payload
-                for (const col of state.data.columns) {
-                    const index = col.cards.findIndex((c) => c.id === moved.id)
-                    if (index !== -1) {
-                        col.cards.splice(index, 1)
-                        break
-                    }
-                }
-                const target = state.data.columns.find(
-                    (col) => col.id === moved.columnId
-                )
-                if (!target) return
-                target.cards.push(moved)
-                target.cards.sort((a, b) => a.position - b.position)
-            })
-            .addCase(removeCard.fulfilled, (state, action) => {
-                if (!state.data) return
-                const id = action.payload
-                for (const col of state.data.columns) {
-                    const index = col.cards.findIndex((c) => c.id === id)
-                    if (index !== -1) {
-                        col.cards.splice(index, 1)
-                        break
-                    }
-                }
-            })
+            }
+        )
     },
 })
 

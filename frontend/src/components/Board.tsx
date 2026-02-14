@@ -192,11 +192,26 @@ export default function Board({ board }: BoardProps) {
                     spacing={2}
                     width="100%"
                     flex={1}
-                    minWidth={300}
+                    overflow="auto"
+                    flexWrap="nowrap"
+                    alignItems="stretch"
+                    justifyContent="center"
+                    style={{
+                        overflowX: 'auto',
+                        margin: '0 auto',
+                        maxWidth: '1200px',
+                    }}
                 >
                     {board.columns &&
                         board.columns.map((column) => (
-                            <Box key={column.id} flex={1}>
+                            <Box
+                                key={column.id}
+                                style={{
+                                    flex: '1 1 0',
+                                    minWidth: '260px',
+                                    maxWidth: '360px',
+                                }}
+                            >
                                 <Column column={column} />
                             </Box>
                         ))}

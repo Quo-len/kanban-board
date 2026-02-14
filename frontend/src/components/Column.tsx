@@ -62,15 +62,14 @@ export default function Column({ column }: ColumnProps) {
                 direction="column"
                 spacing={1.5}
                 height="calc(90vh - 145px)"
-                minWidth={300}
                 width="100%"
                 alignItems="center"
                 paddingTop={2}
                 paddingBottom={2}
                 overflow="auto"
-                sx={{
+                style={{
                     outline: isOver ? '2px dashed' : 'none',
-                    outlineColor: isOver ? 'primary.main' : 'transparent',
+                    outlineColor: isOver ? '#1976d2' : 'transparent',
                     transition: 'outline-color 0.2s ease',
                 }}
             >
