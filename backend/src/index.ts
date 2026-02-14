@@ -1,57 +1,22 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import express, { Application, Request, Response } from 'express';
-import routes from './routes';
 import sequelize from './db';
-import cors from 'cors';
-import { errorHandler } from './middlewares/errorHandler.middleware';
-import { notFoundHandler } from './middlewares/notFound.middleware';
-
-const app: Application = express();
+import createApp from './app';
 const PORT = Number(process.env.PORT) || 4000;
 
-const allowedOrigins = [process.env.FRONTEND_URL, 'http://localhost:3000'];
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('CORS blocked: origin not allowed'));
-      }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  }),
-);
-
-app.use(express.json());
-
-app.use('/api', routes);
-
-app.get('/', (req: Request, res: Response) => {
-  res.send('Hello, TypeScript + Express!');
-});
-
-app.get('/status', (req: Request, res: Response) => {
-  res.send('API is running!');
-});
-
-app.use(notFoundHandler);
-
-app.use(errorHandler);
+const app = createApp();
 
 (async () => {
   try {
     await sequelize.authenticate();
     console.log('Connected to Supabase Postgres');
+
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running at http://localhost:${PORT}`);
+    });
   } catch (err) {
     console.error('Unable to connect:', err);
+    process.exit(1);
   }
 })();
-
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
